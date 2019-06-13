@@ -488,7 +488,7 @@ A `Map` type contains the following fields:
 - `resolution`: instance of a `Resolution` object
 
 """
-mutable struct Map{T, O <: Order} <: GenericMap{T}
+struct Map{T, O <: Order} <: GenericMap{T}
     pixels::Array{T}
     resolution::Resolution
 
@@ -509,36 +509,43 @@ mutable struct Map{T, O <: Order} <: GenericMap{T}
     end
 end
 
+struct MaskedMap{T, O} <: GenericMap{T}
+	pixels::Vector{T}
+	inds::Vector{Int64}
+	resolution::Resolution
+end
+
+
 import Base: +, -, *, /
 
-+(a::Map{T,O}, b::Map{T,O}) where {T <: Number, O} = Map{T, O}(a.pixels .+ b.pixels)
++(a::GenericMap{T,O}, b::GenericMap{T,O}) where {T <: Number, O} = Map{T, O}(a.pixels .+ b.pixels)
 -(a::Map{T,O}, b::Map{T,O}) where {T <: Number, O} = Map{T, O}(a.pixels .- b.pixels)
 *(a::Map{T,O}, b::Map{T,O}) where {T <: Number, O} = Map{T, O}(a.pixels .* b.pixels)
-/(a::Map{T,O}, b::Map{T,O}) where {T <: Number, O} = Map{T, O}(a.pixels ./ b.pixels)
+/(a::Map{T,O}, b::GenericMap{T,O}) where {T <: Number, O} = GenericMap{T, O}(a.pixels ./ b.pixels)
 
-+(a::Map{T,O}, b::Number) where {T <: Number, O} = Map{T, O}(a.pixels .+ b)
--(a::Map{T,O}, b::Number) where {T <: Number, O} = a + (-b)
-*(a::Map{T,O}, b::Number) where {T <: Number, O} = Map{T, O}(a.pixels .* b)
-/(a::Map{T,O}, b::Number) where {T <: Number, O} = Map{T, O}(a.pixels ./ b)
++(a::GenericMap{T,O}, b::Number) where {T <: Number, O} = GenericMap{T, O}(a.pixels .+ b)
+-(a::GenericMap{T,O}, b::Number) where {T <: Number, O} = a + (-b)
+*(a::GenericMap{T,O}, b::Number) where {T <: Number, O} = GenericMap{T, O}(a.pixels .* b)
+/(a::GenericMap{T,O}, b::Number) where {T <: Number, O} = GenericMap{T, O}(a.pixels ./ b)
 
-+(a::Number, b::Map{T,O}) where {T <: Number, O} = b + a
--(a::Number, b::Map{T,O}) where {T <: Number, O} = b + (-a)
-*(a::Number, b::Map{T,O}) where {T <: Number, O} = b * a
-/(a::Number, b::Map{T,O}) where {T <: Number, O} = Map{T, O}(a ./ b.pixels)
++(a::Number, b::GenericMap{T,O}) where {T <: Number, O} = b + a
+-(a::Number, b::GenericMap{T,O}) where {T <: Number, O} = b + (-a)
+*(a::Number, b::GenericMap{T,O}) where {T <: Number, O} = b * a
+/(a::Number, b::GenericMap{T,O}) where {T <: Number, O} = GenericMap{T, O}(a ./ b.pixels)
 
 ################################################################################
 # Iterator interface
 
-Base.size(m::Map{T, O}) where {T, O} = (m.resolution.numOfPixels,)
+Base.size(m::GenericMap{T, O}) where {T, O} = (m.resolution.numOfPixels,)
 
-Base.IndexStyle(::Type{<:Map{T, O}}) where {T, O} = IndexLinear()
+Base.IndexStyle(::Type{<:GenericMap{T, O}}) where {T, O} = IndexLinear()
 
-function getindex(m::Map{T, O}, i::Integer) where {T, O}
+function getindex(m::GenericMap{T, O}, i::Integer) where {T, O}
     1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
     m.pixels[i]
 end
 
-function setindex!(m::Map{T, O}, val, i::Integer) where {T, O}
+function setindex!(m::GenericMap{T, O}, val, i::Integer) where {T, O}
     1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
     m.pixels[i] = val
 end
@@ -598,7 +605,7 @@ end
 Save the pixels of `map` into the column with index/name `column` in the FITS
 file, which must have been already opened.
 """
-function savePixelsToFITS(map::Map{T},
+function savePixelsToFITS(map::GenericMap{T},
                           f::FITSIO.FITSFile,
                           column) where {T <: Number}
 
@@ -630,7 +637,7 @@ Save a Healpix map in the specified (1-based index) column in a FITS
 file. If the code fails, FITSIO will raise an exception. (Refer to the
 FITSIO library for more information.)
 """
-function saveToFITS(map::Map{T, RingOrder},
+function saveToFITS(map::GenericMap{T, RingOrder},
                     f::FITSIO.FITSFile,
                     column) where {T <: Number}
 
@@ -639,7 +646,7 @@ function saveToFITS(map::Map{T, RingOrder},
 
 end
 
-function saveToFITS(map::Map{T, NestedOrder},
+function saveToFITS(map::GenericMap{T, NestedOrder},
                     f::FITSIO.FITSFile,
                     column) where {T <: Number}
 
@@ -661,7 +668,7 @@ pixels in the map. The keyword `extname` specifies the name of the HDU
 where the map pixels will be written.
 
 """
-function saveToFITS(map::Map{T, O},
+function saveToFITS(map::GenericMap{T, O},
                     fileName::AbstractString;
                     typechar="D",
                     unit="",
@@ -686,14 +693,14 @@ end
 Determine if two Healpix maps are "conformables", i.e., if their
 shape and ordering are the same.
 """
-conformables(map1::Map{T, RingOrder}, map2::Map{S, RingOrder}) where {T, S} =
+conformables(map1::GenericMap{T, RingOrder}, map2::GenericMap{S, RingOrder}) where {T, S} =
     map1.resolution.nside == map2.resolution.nside
 
-conformables(map1::Map{T, NestedOrder}, map2::Map{S, NestedOrder}) where {T, S} =
+conformables(map1::GenericMap{T, NestedOrder}, map2::GenericMap{S, NestedOrder}) where {T, S} =
     map1.resolution.nside == map2.resolution.nside
 
-conformables(map1::Map{T, O1},
-             map2::Map{S, O2}) where {T, S, O1 <: Order, O2 <: Order} = false
+conformables(map1::GenericMap{T, O1},
+             map2::GenericMap{S, O2}) where {T, S, O1 <: Order, O2 <: Order} = false
 
 ################################################################################
 
@@ -757,11 +764,11 @@ Convert the direction specified by the colatitude `theta` (∈ [0, π])
 and the longitude `phi` (∈ [0, 2π]) into the index of the pixel in the
 Healpix map `map`.
 """
-function ang2pix(map::Map{T, RingOrder}, theta, phi) where {T}
+function ang2pix(map::GenericMap{T, RingOrder}, theta, phi) where {T}
     ang2pixRing(map.resolution, Float64(theta), Float64(phi))
 end
 
-function ang2pix(map::Map{T, NestedOrder}, theta, phi) where {T}
+function ang2pix(map::GenericMap{T, NestedOrder}, theta, phi) where {T}
     ang2pixNest(map.resolution, Float64(theta), Float64(phi))
 end
 
@@ -774,11 +781,11 @@ Return the pair (`theta`, `phi`), where `theta` is the colatitude and
 `phi` the longitude of the direction of the pixel center with index
 `ipix`.
 """
-function pix2ang(map::Map{T, RingOrder}, ipix) where {T}
+function pix2ang(map::GenericMap{T, RingOrder}, ipix) where {T}
     pix2angRing(map.resolution, ipix)
 end
 
-function pix2ang(map::Map{T, NestedOrder}, ipix) where {T}
+function pix2ang(map::GenericMap{T, NestedOrder}, ipix) where {T}
     pix2angNest(map.resolution, ipix)
 end
 
