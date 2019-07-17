@@ -1,5 +1,6 @@
 name = "Healpix"
-uuid = "9f4e344d-96bc-545a-84a3-ae6b9e1b672b"
+uuid = "adff8b80-a8c3-11e9-2c76-7b5d30f89368" # mine
+# uuid = "9f4e344d-96bc-545a-84a3-ae6b9e1b672b" # original
 authors = ["Maurizio Tomasi <maurizio.tomasi@unimi.it>"]
 version = "2.1.0"
 
