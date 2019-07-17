@@ -5,7 +5,8 @@ export Resolution, nside2npix, npix2nside
 export ang2pixNest, ang2pixRing, pix2angNest, pix2angRing
 export vec2pixNest, vec2pixRing, pix2vecNest, pix2vecRing
 export pix2ringpos
-export Order, RingOrder, NestedOrder, Map
+export Order, RingOrder, NestedOrder
+export OrderedMap, Map
 export ang2vec, vec2ang, ang2pix, pix2ang
 export readMapFromFITS, savePixelsToFITS, saveToFITS, conformables
 export ringWeightPath, readWeightRing
@@ -473,6 +474,7 @@ An abstract type representing an Healpix map without a specified
 ordering. This can be used to implement multiple dispatch when you
 don't care about the ordering of a map."""
 abstract type GenericMap{T} <: AbstractArray{T, 1} end
+abstract type OrderedMap{T, O <: Order} <: GenericMap{T} end
 
 """
     struct Map{T, O <: Order} <: GenericMap{T}
@@ -488,32 +490,28 @@ A `Map` type contains the following fields:
 - `resolution`: instance of a `Resolution` object
 
 """
-struct Map{T, O <: Order} <: GenericMap{T}
+struct Map{T, O} <: OrderedMap{T, O}
     pixels::Array{T}
     resolution::Resolution
-
-    """
-        Map{T, O <: Order}(nside) -> Map{T, O}
-
-    Create an empty map with the specified NSIDE.
-    """
-    Map{T, O}(nside::Number) where {T, O <: Order} = new(zeros(T, nside2npix(nside)),
-                                                 Resolution(nside))
-
-    """
-    Create a map with the specified array of pixels.
-    """
-    function Map{T, O}(arr::Array{T}) where {T, O <: Order}
-        nside = npix2nside(length(arr))    
-        new(arr, Resolution(nside))
-    end
 end
 
-struct MaskedMap{T, O} <: GenericMap{T}
-	pixels::Vector{T}
-	inds::Vector{Int64}
-	resolution::Resolution
+"""
+    Map{T, O <: Order}(nside) -> Map{T, O}
+
+Create an empty map with the specified NSIDE.
+"""
+function Map{T, O}(nside::Number) where {T, O} 
+	Map{T,O}(zeros(T, nside2npix(nside)), Resolution(nside))
 end
+
+"""
+Create a map with the specified array of pixels.
+"""
+function Map{O}(healpixels::Vector{T}) where {T, O}
+	Map{T, O}(healpixels, Resolution(npix2nside(length(healpixels))))
+end
+
+Map(healpixels::Vector{T}) where T = Map{RingOrder}(healpixels)
 
 import Base: +, -, *, /
 
@@ -535,7 +533,7 @@ import Base: +, -, *, /
 ################################################################################
 # Iterator interface
 
-Base.size(m::GenericMap{T}) where {T} = (m.resolution.numOfPixels,)
+Base.size(m::GenericMap{T}) where {T} = (length(m.pixels),)
 
 Base.IndexStyle(::Type{<:GenericMap{T}}) where {T} = IndexLinear()
 
