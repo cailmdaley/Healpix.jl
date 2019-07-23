@@ -507,6 +507,10 @@ end
 """
 Create a map with the specified array of pixels.
 """
+function Map{T, O}(healpixels::Vector{T}) where {T, O}
+	Map{T, O}(healpixels, Resolution(npix2nside(length(healpixels))))
+end
+
 function Map{O}(healpixels::Vector{T}) where {T, O}
 	Map{T, O}(healpixels, Resolution(npix2nside(length(healpixels))))
 end
