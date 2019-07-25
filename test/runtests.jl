@@ -535,7 +535,7 @@ include("xyf.jl")
 
 # Iterator interface
 
-m = Healpix.Map{Int8, Healpix.RingOrder}(1)
+m = Healpix.Map{Int8, Healpix.Ring}(1)
 for i in 1:length(m)
     m[i] = i
 end
@@ -549,32 +549,32 @@ end
 
 # Conformability
 
-@test Healpix.conformables(Healpix.Map{Int16,Healpix.RingOrder}(4), 
-                           Healpix.Map{Float32,Healpix.RingOrder}(4))
+@test Healpix.conformables(Healpix.Map{Int16,Healpix.Ring}(4), 
+                           Healpix.Map{Float32,Healpix.Ring}(4))
 # nside mismatch
-@test !Healpix.conformables(Healpix.Map{Int16,Healpix.RingOrder}(8),
-                            Healpix.Map{Int16,Healpix.RingOrder}(4))
+@test !Healpix.conformables(Healpix.Map{Int16,Healpix.Ring}(8),
+                            Healpix.Map{Int16,Healpix.Ring}(4))
 # order mismatch
-@test !Healpix.conformables(Healpix.Map{Float32,Healpix.RingOrder}(4),
-                            Healpix.Map{Float32,Healpix.NestedOrder}(4))
+@test !Healpix.conformables(Healpix.Map{Float32,Healpix.Ring}(4),
+                            Healpix.Map{Float32,Healpix.Nest}(4))
 
 # Map making
 
 pixidx = [1, 5, 3, 2, 2, 3, 3]
 tod = [0.0, missing, 2.5, 1.5, 2.5, 3.5, missing]
-(binmap, hitmap) = Healpix.tod2map(pixidx, tod, nside=1, ordering=Healpix.RingOrder)
+(binmap, hitmap) = Healpix.tod2map(pixidx, tod, nside=1, ordering=Healpix.Ring)
 @test binmap.pixels ≈ [0.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 @test hitmap.pixels == [1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 pixidx1 = [1, 3, 2, 2, 3]
 tod1 = [0.0, 2.5, 1.5, 2.5, 3.5]
-(binmap1, hitmap1) = Healpix.tod2map(pixidx1, tod1, nside=1, ordering=Healpix.RingOrder)
+(binmap1, hitmap1) = Healpix.tod2map(pixidx1, tod1, nside=1, ordering=Healpix.Ring)
 @test binmap1.pixels ≈ [0.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 @test hitmap1.pixels == [1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-binmap2 = Healpix.Map{Float64,Healpix.RingOrder}(1)
+binmap2 = Healpix.Map{Float64,Healpix.Ring}(1)
 binmap2.pixels = [1.0, 0.0, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-hitmap2 = Healpix.Map{Int,Healpix.RingOrder}(1)
+hitmap2 = Healpix.Map{Int,Healpix.Ring}(1)
 hitmap2.pixels = [1, 6, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0]
 Healpix.combinemaps!(binmap1, hitmap1, binmap2, hitmap2)
 @test binmap1.pixels ≈ [0.5, 0.5, 3.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -583,12 +583,12 @@ Healpix.combinemaps!(binmap1, hitmap1, binmap2, hitmap2)
 # Map loading
 
 m = Healpix.readMapFromFITS("float_map.fits", 1, Float32)
-@test typeof(m) == Healpix.Map{Float32,Healpix.RingOrder}
+@test typeof(m) == Healpix.Map{Float32,Healpix.Ring}
 @test m.resolution.nside == 4
 @test m.pixels == [Float32(x) for x in 0:(12 * 4^2 - 1)]
 
 m = Healpix.readMapFromFITS("int_map.fits", 1, Int8)
-@test typeof(m) == Healpix.Map{Int8,Healpix.RingOrder}
+@test typeof(m) == Healpix.Map{Int8,Healpix.Ring}
 @test m.resolution.nside == 1
 @test m.pixels == [Int8(x) for x in 0:11]
 
@@ -602,7 +602,7 @@ m2 = Healpix.readMapFromFITS(mapFileName, 1, Int8)
 
 # Map projections
 
-m = Healpix.Map{Float64,Healpix.RingOrder}(1)
+m = Healpix.Map{Float64,Healpix.Ring}(1)
 m.pixels = 1.0:12.0
 
 bmp = Healpix.equirectangular(m, Dict(:width => 50))

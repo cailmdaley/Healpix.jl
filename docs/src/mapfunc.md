@@ -18,7 +18,7 @@ shows how to create a map and initialize it:
 
 ```julia
 nside = 32
-m = Map{Float64, RingOrder}(nside)
+m = Map{Float64, Ring}(nside)
 m.pixels[:] = 1.0  # Set all pixels to 1
 ```
 
@@ -41,10 +41,10 @@ executed on plain generic arrays:
 maplength(m::GenericMap{T}) where T = length(m)
 
 # This returns 12
-maplength(Map{Float64, RingOrder}(1))
+maplength(Map{Float64, Ring}(1))
 
 # This too returns 12
-maplength(Map{Float64, NestedOrder}(1))
+maplength(Map{Float64, Nest}(1))
 
 # This fails
 maplength(zeros(Float64, 12))
@@ -59,13 +59,13 @@ Map
 
 Healpix.jl distinguishes between `RING` and `NEST` orderings using
 Julia's typesystem. The abstract type `Order` has two descendeants,
-`RingOrder` and `NestedOrder`, which are used to instantiate objects
+`Ring` and `Nest`, which are used to instantiate objects
 of type `Map`.
 
 ```@docs
 Order
-RingOrder
-NestedOrder
+Ring
+Nest
 ```
 
 ## Pixel functions
@@ -114,10 +114,10 @@ conversions. The function `conformables` checks this.
 
 ```@repl
 using Healpix # hide
-m1 = Map{Float64, RingOrder}(1)
-m2 = Map{Float64, RingOrder}(1)
-m3 = Map{Float64, NestedOrder}(1)
-m4 = Map{Float64, NestedOrder}(2)
+m1 = Map{Float64, Ring}(1)
+m2 = Map{Float64, Ring}(1)
+m3 = Map{Float64, Nest}(1)
+m4 = Map{Float64, Nest}(2)
 conformables(m1, m2)
 conformables(m1, m3)
 conformables(m1, m4)

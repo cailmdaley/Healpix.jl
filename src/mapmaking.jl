@@ -6,7 +6,7 @@ export tod2map, combinemaps!
 Create a binned map for a TOD and return a tuple containing the map
 itself and the hit map.
 """
-function tod2map(pixidx, tod::Array{T}; nside=128, ordering=Healpix.RingOrder) where {T}
+function tod2map(pixidx, tod::Array{T}; nside=128, ordering=Healpix.Ring) where {T}
     @assert length(pixidx) == length(tod)
     
     binnedmap = Map{T,ordering}(nside)
