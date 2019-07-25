@@ -22,6 +22,12 @@ import Base: getindex, setindex!
 
 const NSIDE_MAX = 8192
 
+using PyCall; const healpy = PyNULL()
+function __init__()
+    copy!(healpy, pyimport("healpy"))
+end
+export healpy
+
 include("math.jl")
 include("datatables.jl")
 include("resolution.jl")
