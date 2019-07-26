@@ -142,7 +142,7 @@ end
 
 function resize(m::Map{T,O}, nside) where {T, O}
     order =
-	Map(healpy.ud_grade(m.pixels, nside, order_in=(O ≡ Ring ? "RING" : "NEST")))
+	Map{O}(healpy.ud_grade(m.pixels, nside, order_in=(O ≡ Ring ? "RING" : "NEST")))
 end
 function resize(mm::MaskedMap{T,O}, nside) where {T, O}
 	θlims, ϕlims = extrema(getcoords(mm), dims=2)
