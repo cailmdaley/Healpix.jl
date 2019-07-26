@@ -123,7 +123,7 @@ function reorder(m::Map{T,O}) where {T,O}
 end
 function reorder(mm::MaskedMap{T,O}) where {T,O}
     inds = reorder_inds(mm)
-    Map{T, (O ≡ Ring ? Nest : Ring)}(m.pixels[inds], inds, mm.resolution)
+    Map{T, (O ≡ Ring ? Nest : Ring)}(mm.pixels[inds], inds, mm.resolution)
 end
 
 function get_latlong_deg(m::OrderedMap, ind)
@@ -186,16 +186,6 @@ function setindex!(m::AbstractMap{T, O}, val, i::Integer) where {T, O}
 end
 
 ################################################################################
-
-"""
-    readMapFromFITS{T <: Number}(f::FITSIO.FITSFILE, column, t::Type{T})
-    readMapFromFITS{T <: Number}(fileName::String, column, t::Type{T})
-
-Read a Healpix map from the specified (1-base indexed) column in a
-FITS file. The values will be read as numbers of type T. If the code
-fails, FITSIO will raise an exception. (Refer to the FITSIO library
-for more information.)
-"""
 
 """
     conformables{T, S, O1 <: Order, O2 <: Order}(map1::Map{T, O1},

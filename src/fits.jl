@@ -1,6 +1,15 @@
-function readMapFromFITS(f::FITSIO.FITSFile,
-                         column,
-                         t::Type{T}) where {T <: Number}
+"""
+    readMapFromFITS{T <: Number}(f::FITSIO.FITSFILE, column, t::Type{T})
+    readMapFromFITS{T <: Number}(fileName::String, column, t::Type{T})
+
+Read a Healpix map from the specified (1-base indexed) column in a
+FITS file. The values will be read as numbers of type T. If the code
+fails, FITSIO will raise an exception. (Refer to the FITSIO library
+for more information.)
+"""
+
+function readMapFromFITS(f::FITSIO.FITSFile, column, t::Type{T}) where
+                        {T <: Number}
     value, comment = FITSIO.fits_read_keyword(f, "NSIDE")
     nside = parse(Int, value)
 
