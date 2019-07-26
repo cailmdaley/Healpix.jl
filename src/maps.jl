@@ -123,7 +123,7 @@ function reorder(m::Map{T,O}) where {T,O}
 end
 function reorder(mm::MaskedMap{T,O}) where {T,O}
     inds = reorder_inds(mm)
-    Map{T, (O ≡ Ring ? Nest : Ring)}(mm.pixels[inds], inds, mm.resolution)
+    MaskedMap{T, (O ≡ Ring ? Nest : Ring)}(mm.pixels[inds], inds, mm.resolution)
 end
 
 function get_latlong_deg(m::OrderedMap, ind)
@@ -133,9 +133,8 @@ end
 
 function getcoords(m::OrderedMap)
 	coords = zeros((2, length(m)))
-	healpixel_inds = get_healpixel_inds(m)
-	for i in eachindex(healpixel_inds)
-		coords[:,i] .= get_latlong_deg(m, healpixel_inds[i])
+	for (i, healpixel_ind) in enumerate(eachindex(m))
+		coords[:,i] .= get_latlong_deg(m, healpixel_ind)
 	end
 	coords
 end
