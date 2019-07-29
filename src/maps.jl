@@ -104,11 +104,6 @@ function MaskedMap{O}(healpixels::Vector{T}, θlims, ϕlims) where {T, O}
 	MaskedMap(Map{O}(healpixels), θlims, ϕlims)
 end
 
-# Pixel vector to defaults to ringOrdering
-function MaskedMap(healpixels::Vector{T}, θlims, ϕlims) where T <: Number
-	MaskedMap{Nested}(healpixels, θlims, ϕlims)
-end
-
 ###########################################################################
 # reordering and coordinate querying
 

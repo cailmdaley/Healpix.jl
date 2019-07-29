@@ -143,15 +143,3 @@ function readMaskedMap(path)
 	nside = table[2,1]
 	mm = MaskedMap{T, O}(table[3:end, 2], table[3:end, 1], Resolution(nside))
 end
-
-function make_postage_stamps(m::Map, dir)
-	!isdir(dir) && mkdir(dir)
-	total = 0
-
-	for i in [0.5 1. 2. 3. 4. 5. 10. 15. 20. 30. 40. 50.]
-		mm = MaskedMap(m, (-i/2, i/2), (total, total+i))
-		w = lpad(i, 4, "0")
-		saveMaskedMap(mm, joinpath(dir, "$(w)x$(i).dat"))
-		total += i + 1
-	end
-end

@@ -8,6 +8,7 @@ export pix2ringpos
 export Order, Ring, Nest
 export AbstractMap, Map, OrderedMap, MaskedMap
 export getcoords, resize, reorder
+export readMaskedMap, saveMaskedMap, make_postage_stamps
 export ang2vec, vec2ang, ang2pix, pix2ang
 export readMapFromFITS, savePixelsToFITS, saveToFITS, conformables
 export ringWeightPath, readWeightRing
@@ -19,6 +20,7 @@ export ring2nest, nest2ring
 
 import FITSIO
 import Base: getindex, setindex!
+import DelimitedFiles: readdlm, writedlm
 
 const NSIDE_MAX = 8192
 

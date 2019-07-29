@@ -4,6 +4,7 @@ authors = ["Cail Daley <cailmdaley@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
