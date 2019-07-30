@@ -46,19 +46,6 @@ struct Map{T, O} <: OrderedMap{T, O}
 end
 
 """
-    Map{T, O <: Order}(nside) -> Map{T, O}
-
-Create an empty map with the specified NSIDE.
-"""
-function Map{T, O}(nside::Number) where {T, O}
-	Map{T,O}(zeros(T, nside2npix(nside)), Resolution(nside))
-end
-
-function Map{T, O}(healpixels::Vector{T}) where {T, O}
-	Map{T, O}(healpixels, Resolution(npix2nside(length(healpixels))))
-end
-
-"""
 Create a map with the specified array of pixels, without redundancy of above
 syntax.
 """
@@ -66,10 +53,14 @@ function Map{O}(healpixels::Vector{T}) where {T, O}
 	Map{T, O}(healpixels, Resolution(npix2nside(length(healpixels))))
 end
 
-"""
-Convenience constructor--default Nest
-"""
-Map(healpixels::Vector{T}) where T = Map{Nest}(healpixels)
+Map(healpixels) = Map{Nest}(healpixels)
+
+function Map{T, O}(nside::Integer) where {T, O}
+	Map{O}(Vector{T}(undef, nside2npix(nside)))
+end
+Map{T}(nside::Integer) where T = Map{T, Nest}(nside)
+
+
 
 ###########################################################################
 # Map & MaskedMap initialization functions
@@ -80,14 +71,31 @@ struct MaskedMap{T, O} <: OrderedMap{T, O}
 	resolution::Resolution
 end
 
-# MaskedMap to Map
-function Map(mm::MaskedMap{T, O}) where {T, O}
-	healpixels = fill(NaN, mm.resolution.numOfPixels)
-	healpixels[mm.inds] = mm.pixels
-	Map{O}(healpixels)
+# Convenience constructor that infers type
+function MaskedMap{O}(pixels::Vector{T}, inds, resolution) where {T,O}
+    MaskedMap{T,O}(pixels, inds, resolution)
 end
 
-# Map to MaskedMap
+# Convenience constructor that defualts to nest
+function MaskedMap(pixels::Vector{T}, inds, resolution) where {T,O}
+    MaskedMap{Nest}(pixels, inds, resolution)
+end
+
+# Unintialized constructor
+function MaskedMap{T, O}(inds, resolution) where {T,O}
+	MaskedMap{O}(Vector{T}(undef, length(inds)), inds, resolution)
+end
+
+# Unintialized constructor that defualts to Nest
+function MaskedMap{T}(inds, resolution) where {T}
+	MaskedMap(Vector{T}(undef, length(inds)), inds, resolution)
+end
+
+# construct from map
+function MaskedMap(m::Map{T,O}, inds) where {T,O}
+    MaskedMap{O}(m.pixels[inds], inds, m.resolution)
+end
+
 function MaskedMap(m::Map{T, O}, θlims, ϕlims) where {T,O}
 	inds = Vector{Int64}()
 	for i in eachindex(m.pixels)
@@ -96,18 +104,67 @@ function MaskedMap(m::Map{T, O}, θlims, ϕlims) where {T,O}
 			push!(inds, i)
 		end
 	end
-	MaskedMap{T,O}(m.pixels[inds], inds, m.resolution)
+	MaskedMap(m, inds)
 end
 
-# Pixel vector to MaskedMap
-function MaskedMap{O}(healpixels::Vector{T}, θlims, ϕlims) where {T, O}
-	MaskedMap(Map{O}(healpixels), θlims, ϕlims)
+# MaskedMap to Map
+function Map(mm::MaskedMap{T, O}) where {T, O}
+	healpixels = fill(NaN, mm.resolution.numOfPixels)
+	healpixels[mm.inds] = mm.pixels
+	Map{O}(healpixels)
 end
+
+################################################################################
+# Base definitions
+import Base: size, IndexStyle, getindex, setindex!, eachindex, similar
+
+size(m::AbstractMap{T, O}) where {T, O} = (length(m.pixels),)
+
+IndexStyle(::Type{<:AbstractMap{T, O}}) where {T, O} = IndexLinear()
+
+function getindex(m::AbstractMap{T, O}, i::Integer) where {T, O}
+    1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
+    m.pixels[i]
+end
+
+function setindex!(m::AbstractMap{T, O}, val, i::Integer) where {T, O}
+    1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
+    m.pixels[i] = val
+end
+
+eachindex(mm::MaskedMap) = mm.inds
+
+similar(m::Map{T,O}) where {T,O} = Map{T,O}(m.resolution.nside)
+similar(m::Map{T,O}, nside::Integer) where {T,O} = Map{T,O}(nside)
+
+similar(mm::MaskedMap{T,O}) where {T,O} = MaskedMap{T,O}(mm.inds, mm.resolution)
+similar(mm::MaskedMap{T,O}, nside::Integer) where {T,O} = similar(resize(mm,
+                                                                  nside))
+
+################################################################################
+
+
+import Base: +, -, *, /
+
++(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .+ b.pixels)
+-(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .- b.pixels)
+*(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .* b.pixels)
+/(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels ./ b.pixels)
+
++(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .+ b)
+-(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = a + (-b)
+*(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .* b)
+/(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels ./ b)
+
++(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b + a
+-(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b + (-a)
+*(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b * a
+/(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a ./ b.pixels)
 
 ###########################################################################
 # reordering and coordinate querying
 
-Base.eachindex(mm::MaskedMap) = mm.inds
+
 function reorder_inds(m::AbstractMap{T,O}) where {T,O}
     reorder_func = (O ≡ Ring ? ring2nest : nest2ring)
     sortperm([reorder_func(m.resolution, i) for i in eachindex(m)])
@@ -133,53 +190,29 @@ function getcoords(m::OrderedMap)
 	end
 	coords
 end
+function getcoords(inds, nside)
+	coords = zeros((2, length(inds)))
+	for (i, healpixel_ind) in enumerate(inds)
+		coords[:,i] .= get_latlong_deg(m, healpixel_ind)
+	end
+	return coords
+end
 
 function resize(m::Map{T,O}, nside) where {T, O}
-    order =
-	Map{O}(healpy.ud_grade(m.pixels, nside, order_in=(O ≡ Ring ? "RING" : "NEST")))
+	m[isequal.(m,NaN)] .= UNSEEN
+	m_resized = Map{O}(healpy.ud_grade(m.pixels, nside,
+									   order_in=(O ≡ Ring ? "RING" : "NEST")))
+	m_resized[isequal.(m_resized,UNSEEN)] .= NaN
+	return m_resized
 end
+
 function resize(mm::MaskedMap{T,O}, nside) where {T, O}
-	θlims, ϕlims = extrema(getcoords(mm), dims=2)
-	MaskedMap(resize(Map(mm), nside), θlims, ϕlims)
+	resized_map = resize(Map(mm), nside)
+	resized_inds = findall(pix -> !isequal(pix, NaN), resized_map)
+	MaskedMap{T,O}(resized_map[resized_inds], resized_inds, mm.resolution)
 end
 
 ###########################################################################
-
-import Base: +, -, *, /
-
-+(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .+ b.pixels)
--(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .- b.pixels)
-*(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .* b.pixels)
-/(a::AbstractMap{T, O}, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a.pixels ./ b.pixels)
-
-+(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .+ b)
--(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = a + (-b)
-*(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels .* b)
-/(a::AbstractMap{T, O}, b::Number) where {T <: Number, O} = AbstractMap{T, O}(a.pixels ./ b)
-
-+(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b + a
--(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b + (-a)
-*(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = b * a
-/(a::Number, b::AbstractMap{T, O}) where {T <: Number, O} = AbstractMap{T, O}(a ./ b.pixels)
-
-################################################################################
-# Iterator interface
-
-Base.size(m::AbstractMap{T, O}) where {T, O} = (length(m.pixels),)
-
-Base.IndexStyle(::Type{<:AbstractMap{T, O}}) where {T, O} = IndexLinear()
-
-function getindex(m::AbstractMap{T, O}, i::Integer) where {T, O}
-    1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
-    m.pixels[i]
-end
-
-function setindex!(m::AbstractMap{T, O}, val, i::Integer) where {T, O}
-    1 ≤ i ≤ m.resolution.numOfPixels || throw(BoundsError(m, i))
-    m.pixels[i] = val
-end
-
-################################################################################
 
 """
     conformables{T, S, O1 <: Order, O2 <: Order}(map1::Map{T, O1},
